@@ -1,0 +1,38 @@
+- name: Init repo
+  command: docker compose run --rm restic init
+  args:
+    chdir: "{{WORKDIR}}"
+  environment: 
+    S3_ENDPOINT: "{{S3_ENDPOINT}}"
+    S3_BUCKET: "{{S3_BUCKET}}"
+    S3_KEY_ID: "{{S3_KEY_ID}}"
+    S3_KEY_SECRET: "{{S3_KEY_SECRET}}"
+    S3_PREFIX: "{{S3_PREFIX}}"
+    S3_ENCRYPTION_KEY: "{{S3_ENCRYPTION_KEY}}"
+  register: init_backup
+  failed_when: "init_backup.rc !=0 and 'already initialized' not in init_backup.stderr"
+
+- name: Check if restored
+  stat:
+    path: "{{WORKDIR}}/.restored"
+  register: restored_backup
+
+- name: Restore
+  command: docker compose run --rm restic restore latest --target /backup
+  args:
+    chdir: "{{WORKDIR}}"
+  environment: 
+    S3_ENDPOINT: "{{S3_ENDPOINT}}"
+    S3_BUCKET: "{{S3_BUCKET}}"
+    S3_KEY_ID: "{{S3_KEY_ID}}"
+    S3_KEY_SECRET: "{{S3_KEY_SECRET}}"
+    S3_PREFIX: "{{S3_PREFIX}}"
+    S3_ENCRYPTION_KEY: "{{S3_ENCRYPTION_KEY}}"
+  register: restore_backup
+  when: init_backup.rc !=0 and not restored_backup.stat.exists
+  failed_when: restore_backup.rc !=0 and 'no snapshot found' not in restore_backup.stderr
+
+- name: Mark as restored
+  file:
+    path: "{{WORKDIR}}/.restored"
+    state: touch

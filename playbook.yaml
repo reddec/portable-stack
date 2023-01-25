@@ -1,0 +1,43 @@
+- hosts: all
+  vars:
+    WORKDIR: /data
+    SRCDIR: deployments
+  vars_files:
+    - "variables.yaml"
+  roles:
+  - docker
+  tasks:
+  - name: Create work dir
+    file:
+      path: "{{WORKDIR}}"
+      state: directory
+
+  - name: Copy content
+    synchronize:
+      src: "{{SRCDIR}}/{{inventory_hostname}}/"
+      dest: "{{WORKDIR}}/"
+    register: content
+
+  - name: Stop docker-compose
+    command: docker compose stop
+    args:
+      chdir: "{{WORKDIR}}"
+
+  - name: Init repo and restore
+    include_tasks: restore.yaml
+
+  - name: Start docker-compose
+    command: docker compose up --remove-orphans -d
+    args:
+      chdir: "{{WORKDIR}}"
+    environment: 
+      S3_ENDPOINT: "{{S3_ENDPOINT}}"
+      S3_BUCKET: "{{S3_BUCKET}}"
+      S3_KEY_ID: "{{S3_KEY_ID}}"
+      S3_KEY_SECRET: "{{S3_KEY_SECRET}}"
+      S3_PREFIX: "{{S3_PREFIX}}"
+      S3_ENCRYPTION_KEY: "{{S3_ENCRYPTION_KEY}}"
+
+  - name: Add DNS records
+    include_tasks: dns.yaml
+    loop: "{{domains | default([])}}"

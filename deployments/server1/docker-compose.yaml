@@ -1,0 +1,83 @@
+# TODO: change email in traefik
+# TODO: change or remove S3 destination region (if needed)
+# TODO: define your service instead of node-red
+# TODO: change notification URL in scheduler to something else or remove entirely
+services: 
+  # HTTP router with automatic certificates.
+  traefik:
+    image: "traefik:v2.9"
+    restart: unless-stopped
+    container_name: "traefik"
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      # if you don't need TLS, remove lines below
+      - "--entrypoints.websecure.address=:443"
+      # for closed environments but with domain ownership, DNS challenge can be used which doesn't require public access
+      # https://doc.traefik.io/traefik/https/acme/#dnschallenge
+      - "--certificatesresolvers.le.acme.httpchallenge=true"
+      - "--certificatesresolvers.le.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.le.acme.email=owner@example.com" 
+      - "--certificatesresolvers.le.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      # without TLS 443 port can be removed
+      - "443:443"
+    volumes:
+      - "letsencrypt:/letsencrypt" # volume to store certificates
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+  # any application, node-red just a good example
+  nodered:
+    image: "nodered/node-red:2.2.3"
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      # depends on your application, it can be PathPrefix routing or domain.
+      # My personal recommendation: one sub-domain for each service.
+      # https://doc.traefik.io/traefik/routing/routers/#rule
+      - "traefik.http.routers.nodered.rule=Host(`flow.example.com`)"
+      - "traefik.http.routers.nodered.entrypoints=websecure"
+      - "traefik.http.routers.nodered.tls.certresolver=le"
+      - "traefik.http.services.nodered.loadbalancer.server.port=1880"
+    environment:
+      - TZ=Asia/Singapore
+    volumes:
+      - nodered:/data
+
+  # backup system
+  restic:
+    image: restic/restic:0.15.0
+    # we do not need automatic restarts, since it's managed by scheduler
+    restart: "no"
+    command:
+    - backup
+    - /backup
+    environment:
+      # Theese are sensitve variables they will be passed as environment variables during deployment
+      RESTIC_REPOSITORY: "s3:https://${S3_ENDPOINT}/${S3_BUCKET}/${S3_PREFIX}"
+      RESTIC_PASSWORD: "${S3_ENCRYPTION_KEY}"
+      AWS_ACCESS_KEY_ID: "${S3_KEY_ID}"
+      AWS_SECRET_ACCESS_KEY: "${S3_KEY_SECRET}"
+      AWS_DEFAULT_REGION: us-west-000
+    labels:
+      - "net.reddec.scheduler.cron=@hourly"
+    volumes:
+      # define list of volumes we want to backup
+      - nodered:/backup/nodered
+      - letsencrypt:/backup/letsencrypt
+
+  # cron scheduler for compose. 
+  # mostly configured by labels.
+  scheduler:
+    image: ghcr.io/reddec/compose-scheduler:1.0.0
+    restart: unless-stopped
+    environment:
+      NOTIFY_URL: "https://example.com"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      
+volumes:
+  letsencrypt: {}
+  nodered: {}

@@ -1,0 +1,10 @@
+- name: Set DNS name
+  community.general.cloudflare_dns:
+    zone: "{{item.split('.')[-2:] | join('.')}}"
+    record: "{{item.split('.')[:-2] | join('.') or item}}"
+    type: A
+    value: "{{ansible_host or ansible_hostname or inventory_hostname}}"
+    account_email: "{{CF_EMAIL}}"
+    api_token: "{{CF_API_TOKEN}}"
+    proxied: "true"
+    solo: yes
