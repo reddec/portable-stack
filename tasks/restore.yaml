@@ -18,7 +18,7 @@
   register: restored_backup
 
 - name: Restore
-  command: docker compose run --rm restic restore latest --target /backup
+  command: docker compose run --rm restic restore latest --target /
   args:
     chdir: "{{WORKDIR}}"
   environment: 

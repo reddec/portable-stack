@@ -6,7 +6,7 @@ The playbook includes DNS records (if defined) updates in Cloudflare, however, y
 
 ## Checklist
 
-- [ ] Update inventory.yaml and write down your hosts. Pick host name as somthing not bounded to provider: ie `web1`, not `aws-srv-1`. It will help migrate between providers. Optionally, you may set domains names for automatic records update.
+- [ ] Update inventory.yaml and write down your hosts. Pick host name as something not bounded to provider: ie `web1`, not `aws-srv-1`. It will help migrate between providers. Optionally, you may set domains names for automatic records update.
 - [ ] Update variables.yaml and define your parameters. Use [ansible-vault](https://docs.ansible.com/ansible/latest/vault_guide/index.html) for secrets or alternatives.
 - [ ] Update or create stack per host in `hosts/<hostname>/docker-compose.yaml`. Everything in `hosts/<hostname>` will be copied to the remote host before execution, however, only volumes will be backuped by default.
 
