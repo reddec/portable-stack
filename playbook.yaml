@@ -24,7 +24,7 @@
       chdir: "{{WORKDIR}}"
 
   - name: Init repo and restore
-    include_tasks: restore.yaml
+    include_tasks: tasks/restore.yaml
 
   - name: Start docker-compose
     command: docker compose up --remove-orphans -d
@@ -39,5 +39,5 @@
       S3_ENCRYPTION_KEY: "{{S3_ENCRYPTION_KEY}}"
 
   - name: Add DNS records
-    include_tasks: dns.yaml
+    include_tasks: tasks/dns.yaml
     loop: "{{domains | default([])}}"

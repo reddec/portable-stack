@@ -2,7 +2,7 @@
 
 This is "clonable" [portable stack](https://reddec.net/articles/portable-stack/) which can be used by anyone.
 
-The playbook includes DNS records (if defined) updates in Cloudflare, however, you may use any other provider and update logic in `dns.yaml`.
+The playbook includes DNS records (if defined) updates in Cloudflare, however, you may use any other provider and update logic in `tasks/dns.yaml`.
 
 ## Checklist
 
